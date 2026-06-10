@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}My Cases{% endblock %}
+{% block page_title %}My Cases{% endblock %}
+
+{% block content %}
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:22px">
+  <div>
+    <p class="text-muted">Track your submitted cases and view reports from your counselor.</p>
+  </div>
+  <a href="{{ url_for('user_submit') }}" class="btn btn-primary">＋ New Case</a>
+</div>
+
+{% if not cases %}
+  <div class="empty-state">
+    <div class="icon">◎</div>
+    <p>No cases submitted yet.</p>
+    <a href="{{ url_for('user_submit') }}" class="btn btn-accent mt-2" style="margin-top:14px">Submit your first case</a>
+  </div>
+{% else %}
+  {% for c in cases %}
+    {% set sev = c.Severity | lower %}
+    <div class="case-card {{ sev }}">
+      <div class="case-card-head">
+        <div>
+          <div class="case-card-title">{{ c.AlertType }}</div>
+          <div class="case-card-meta">
+            Case #{{ c.AlertID }} &nbsp;·&nbsp;
+            {{ c.AlertDate.strftime('%d %b %Y, %H:%M') if c.AlertDate else '—' }}
+          </div>
+        </div>
+        <div class="case-badges">
+          <span class="badge badge-{{ sev }}">{{ c.Severity }}</span>
+          {% set st = c.Status | lower | replace(' ', '') %}
+          <span class="badge badge-{{ st }}">{{ c.Status }}</span>
+        </div>
+      </div>
+
+      {% if c.Description %}
+        <p class="case-desc">{{ c.Description }}</p>
+      {% endif %}
+
+      {% if c.ResolvedAt %}
+        <p class="text-mono mt-1" style="color:var(--accent)">
+          ✓ Resolved on {{ c.ResolvedAt.strftime('%d %b %Y') }}
+        </p>
+      {% endif %}
+
+      {% if c.ReportContent %}
+        <div class="report-block">
+          <h4>📋 Your Report — sent {{ c.ReportDate.strftime('%d %b %Y') if c.ReportDate else '' }}</h4>
+          <pre>{{ c.ReportContent }}</pre>
+        </div>
+      {% elif c.Status == 'Resolved' %}
+        <p class="text-muted mt-1" style="font-size:0.8rem">Awaiting admin approval before report is sent.</p>
+      {% endif %}
+    </div>
+  {% endfor %}
+{% endif %}
+{% endblock %}

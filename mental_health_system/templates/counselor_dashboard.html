@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Counselor Dashboard{% endblock %}
+{% block page_title %}Assigned Cases{% endblock %}
+
+{% block content %}
+<div class="stats-row" style="grid-template-columns: repeat(3, 1fr); max-width:600px; margin-bottom:24px">
+  {% set active   = cases | selectattr('Status', 'in', ['Pending','In Progress']) | list %}
+  {% set resolved = cases | selectattr('Status', 'equalto', 'Resolved') | list %}
+  {% set critical = cases | selectattr('Severity', 'equalto', 'CRITICAL') | list %}
+  <div class="stat-card danger">
+    <div class="stat-label">Critical</div>
+    <div class="stat-value">{{ critical | length }}</div>
+  </div>
+  <div class="stat-card warn">
+    <div class="stat-label">Active</div>
+    <div class="stat-value">{{ active | length }}</div>
+  </div>
+  <div class="stat-card success">
+    <div class="stat-label">Resolved</div>
+    <div class="stat-value">{{ resolved | length }}</div>
+  </div>
+</div>
+
+{% if not cases %}
+  <div class="empty-state">
+    <div class="icon">◎</div>
+    <p>No cases assigned to you yet.</p>
+  </div>
+{% else %}
+  <div class="card mb-2">
+    <div class="card-header">
+      <h3>Active Cases</h3>
+      <span class="text-mono text-muted">Sorted by severity</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Patient</th>
+            <th>Contact</th>
+            <th>Type</th>
+            <th>Severity</th>
+            <th>Status</th>
+            <th>Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in cases %}
+          {% set sev = c.Severity | lower %}
+          {% set st  = c.Status | lower | replace(' ','') %}
+          <tr>
+            <td class="text-mono">{{ c.AlertID }}</td>
+            <td><strong>{{ c.PatientName }}</strong></td>
+            <td class="text-mono">{{ c.PatientContact or '—' }}</td>
+            <td>{{ c.AlertType }}</td>
+            <td><span class="badge badge-{{ sev }}">{{ c.Severity }}</span></td>
+            <td><span class="badge badge-{{ st }}">{{ c.Status }}</span></td>
+            <td class="text-mono">{{ c.AlertDate.strftime('%d %b %Y') if c.AlertDate else '—' }}</td>
+            <td>
+              <button class="btn btn-ghost btn-sm"
+                onclick="openModal('modal-{{ c.AlertID }}')">Update</button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Recent Sessions -->
+  {% if sessions %}
+  <div class="card">
+    <div class="card-header">
+      <h3>Recent Session Notes</h3>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Case #</th>
+            <th>Patient</th>
+            <th>Notes</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in sessions %}
+          <tr>
+            <td class="text-mono">{{ s.AlertID }}</td>
+            <td>{{ s.PatientName }}</td>
+            <td style="max-width:360px; font-size:0.83rem">{{ s.Notes or '—' }}</td>
+            <td class="text-mono">{{ s.SessionDate.strftime('%d %b %Y') if s.SessionDate else '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+{% endif %}
+
+<!-- MODALS -->
+{% for c in cases %}
+<div class="modal-overlay" id="modal-{{ c.AlertID }}">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-{{ c.AlertID }}')">✕</button>
+    <h3>Case #{{ c.AlertID }} — {{ c.PatientName }}</h3>
+    <p class="text-muted" style="margin-bottom:16px; font-size:0.84rem">
+      {{ c.AlertType }} &nbsp;·&nbsp;
+      <span class="badge badge-{{ c.Severity | lower }}">{{ c.Severity }}</span>
+    </p>
+
+    {% if c.Description %}
+      <div style="background:var(--bg); border-radius:6px; padding:10px 14px; margin-bottom:16px; font-size:0.84rem; color:var(--muted)">
+        {{ c.Description }}
+      </div>
+    {% endif %}
+
+    <form method="POST" action="{{ url_for('counselor_update', alert_id=c.AlertID) }}">
+      <div class="form-group">
+        <label>Session Notes / Update</label>
+        <textarea name="notes" class="form-control" rows="4"
+          placeholder="What did you discuss? Any observations?"></textarea>
+      </div>
+      <div class="gap-2">
+        <button type="submit" name="action" value="note" class="btn btn-ghost btn-sm">Add Note</button>
+        {% if c.Status != 'Resolved' %}
+          <button type="submit" name="action" value="escalate" class="btn btn-warn btn-sm">Escalate</button>
+          <button type="submit" name="action" value="resolve" class="btn btn-accent btn-sm">Mark Resolved ✓</button>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+{% endfor %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+</script>
+{% endblock %}

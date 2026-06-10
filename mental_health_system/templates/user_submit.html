@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Submit Case{% endblock %}
+{% block page_title %}Submit a Case{% endblock %}
+
+{% block content %}
+<div style="max-width:560px">
+  <p class="text-muted mb-2">Your submission is confidential. A counselor will be assigned to you shortly.</p>
+
+  <div class="card mt-2">
+    <div class="card-header">
+      <h3>Case Details</h3>
+    </div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('user_submit') }}">
+
+        <div class="form-group">
+          <label>What best describes what you're experiencing?</label>
+          <select name="alert_type" class="form-control" required id="alertType" onchange="updateSeverityHint(this)">
+            <option value="" disabled selected>Select a type</option>
+            <option value="Stress">Stress</option>
+            <option value="Anxiety">Anxiety</option>
+            <option value="Depression">Depression</option>
+            <option value="Severe Depression">Severe Depression</option>
+            <option value="Self-harm">Self-harm</option>
+            <option value="Suicidal">Suicidal Thoughts</option>
+            <option value="Others">Others</option>
+          </select>
+        </div>
+
+        <div id="severityHint" style="margin-bottom:14px; display:none">
+          <div id="severityBadge" class="badge" style="font-size:0.75rem; padding:4px 12px"></div>
+          <span class="text-muted" style="font-size:0.8rem; margin-left:8px" id="severityNote"></span>
+        </div>
+
+        <div class="form-group">
+          <label>Describe what you're going through (optional)</label>
+          <textarea name="description" class="form-control" rows="5"
+            placeholder="Share as much or as little as you're comfortable with..."></textarea>
+        </div>
+
+        <div class="gap-2">
+          <button type="submit" class="btn btn-primary">Submit Case →</button>
+          <a href="{{ url_for('user_dashboard') }}" class="btn btn-ghost">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div style="margin-top:20px; padding:16px 18px; background:var(--accent-l); border-radius:8px; border:1px solid #B8D9C8">
+    <p style="font-family:var(--font-mono); font-size:0.7rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--accent); margin-bottom:6px">Immediate help</p>
+    <p class="text-muted" style="font-size:0.84rem">If you are in immediate danger, please call <strong>iCall: 9152987821</strong> or <strong>Vandrevala Foundation: 1860-2662-345</strong>.</p>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const sevMap = {
+  'Stress':           ['LOW',      'badge-low',      'A counselor will reach out to you.'],
+  'Anxiety':          ['MEDIUM',   'badge-medium',   'You will be prioritised.'],
+  'Depression':       ['MEDIUM',   'badge-medium',   'You will be prioritised.'],
+  'Severe Depression':['HIGH',     'badge-high',     'High priority — assigned quickly.'],
+  'Self-harm':        ['HIGH',     'badge-high',     'High priority — assigned quickly.'],
+  'Suicidal':         ['CRITICAL', 'badge-critical', 'CRITICAL — immediate attention.'],
+  'Others':           ['LOW',      'badge-low',      'A counselor will reach out to you.'],
+};
+function updateSeverityHint(sel) {
+  const hint  = document.getElementById('severityHint');
+  const badge = document.getElementById('severityBadge');
+  const note  = document.getElementById('severityNote');
+  const data  = sevMap[sel.value];
+  if (!data) { hint.style.display='none'; return; }
+  badge.className = 'badge ' + data[1];
+  badge.textContent = data[0];
+  note.textContent  = data[2];
+  hint.style.display = 'flex';
+  hint.style.alignItems = 'center';
+}
+</script>
+{% endblock %}

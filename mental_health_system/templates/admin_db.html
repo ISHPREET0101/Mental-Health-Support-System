@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Database Viewer{% endblock %}
+{% block page_title %}Database Viewer{% endblock %}
+
+{% block content %}
+
+<!-- TABLES -->
+<div class="db-section">
+  <div class="db-section-title">Tables</div>
+  <div class="db-tabs" id="tableTabs">
+    {% for name in tables %}
+    <button class="db-tab {{ 'active' if loop.first }}" onclick="switchTab('table','{{ name }}',this)">{{ name }}</button>
+    {% endfor %}
+  </div>
+  {% for name, rows in tables.items() %}
+  <div class="db-table-panel {{ 'active' if loop.first }}" id="table-{{ name }}">
+    {% if rows %}
+    <div class="table-wrap scroll-table">
+      <table>
+        <thead>
+          <tr>{% for col in rows[0].keys() %}<th>{{ col }}</th>{% endfor %}</tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            {% for val in row.values() %}
+            <td class="text-mono" style="font-size:0.78rem; max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">
+              {{ val if val is not none else '—' }}
+            </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="text-muted" style="font-size:0.75rem; padding:8px 14px">{{ rows | length }} row(s)</p>
+    {% else %}
+    <div class="empty-state" style="padding:24px">
+      <p>No data in {{ name }}.</p>
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<!-- VIEWS -->
+<div class="db-section">
+  <div class="db-section-title">Views</div>
+  <div class="db-tabs" id="viewTabs">
+    {% for name in views %}
+    <button class="db-tab {{ 'active' if loop.first }}" onclick="switchTab('view','{{ name }}',this)">{{ name }}</button>
+    {% endfor %}
+  </div>
+  {% for name, rows in views.items() %}
+  <div class="db-table-panel {{ 'active' if loop.first }}" id="view-{{ name }}">
+    {% if rows %}
+    <div class="table-wrap scroll-table">
+      <table>
+        <thead>
+          <tr>{% for col in rows[0].keys() %}<th>{{ col }}</th>{% endfor %}</tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            {% for val in row.values() %}
+            <td class="text-mono" style="font-size:0.78rem">{{ val if val is not none else '—' }}</td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding:24px"><p>No records.</p></div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<!-- STORED PROCEDURES + FUNCTIONS + TRIGGERS -->
+<div class="grid-3" style="margin-bottom:24px">
+  <div class="card">
+    <div class="card-header"><h3>Stored Procedures</h3></div>
+    <div class="card-body">
+      {% for p in procs %}
+      <div style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid var(--border-l)">
+        <div class="text-mono" style="color:var(--primary); font-weight:500">{{ p.Name }}</div>
+        <div class="text-muted" style="font-size:0.75rem">{{ p.Type }} · {{ p.Modified }}</div>
+      </div>
+      {% else %}
+      <p class="text-muted">None found.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3>Functions</h3></div>
+    <div class="card-body">
+      {% for f in funcs %}
+      <div style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid var(--border-l)">
+        <div class="text-mono" style="color:var(--primary); font-weight:500">{{ f.Name }}</div>
+        <div class="text-muted" style="font-size:0.75rem">{{ f.Type }} · {{ f.Modified }}</div>
+      </div>
+      {% else %}
+      <p class="text-muted">None found.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3>Triggers</h3></div>
+    <div class="card-body">
+      {% for t in triggers %}
+      <div style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid var(--border-l)">
+        <div class="text-mono" style="color:var(--primary); font-weight:500">{{ t.Trigger }}</div>
+        <div class="text-muted" style="font-size:0.75rem">{{ t.Event }} on {{ t.Table }} · {{ t.Timing }}</div>
+      </div>
+      {% else %}
+      <p class="text-muted">None found.</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function switchTab(group, name, btn) {
+  document.querySelectorAll(`#${group}Tabs .db-tab`).forEach(b => b.classList.remove('active'));
+  document.querySelectorAll(`.db-table-panel[id^="${group}-"]`).forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(`${group}-${name}`).classList.add('active');
+}
+</script>
+{% endblock %}

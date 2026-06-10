@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In — Mental Health Support</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="auth-page">
+  <div class="auth-card">
+    <h2>Welcome back.</h2>
+    <p class="subtitle">Mental Health Support System · UCS310</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-list" style="margin-bottom:16px">
+          {% for cat, msg in messages %}
+            <div class="flash {{ cat }}">{{ msg }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('login') }}">
+      <div class="form-group">
+        <label>Email address</label>
+        <input type="email" name="email" class="form-control" placeholder="you@example.com" required autofocus>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" name="password" class="form-control" placeholder="········" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full" style="margin-top:8px">
+        Sign in →
+      </button>
+    </form>
+
+    <div class="divider"></div>
+    <p class="text-muted" style="text-align:center">
+      New here? <a href="{{ url_for('register') }}">Create an account</a>
+    </p>
+
+    <div style="margin-top:24px; padding:14px; background:var(--bg); border-radius:6px;">
+      <p class="text-mono" style="color:var(--muted); margin-bottom:6px">QUICK LOGIN</p>
+      <p class="text-mono">admin@mhs.com / admin123</p>
+      <p class="text-mono">priya@mhs.com / counsel123</p>
+      <p class="text-mono">raj@student.com / user123</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

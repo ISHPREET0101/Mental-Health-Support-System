@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Manage Users{% endblock %}
+{% block page_title %}Users{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h3>Registered Users</h3>
+    <span class="text-mono text-muted">{{ users | length }} total</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Age</th>
+          <th>Gender</th>
+          <th>Contact</th>
+          <th>Location</th>
+          <th>Joined</th>
+          <th>Promote</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        {% set r = u.Role | lower %}
+        <tr>
+          <td class="text-mono">{{ u.UserID }}</td>
+          <td><strong>{{ u.Name }}</strong></td>
+          <td class="text-mono" style="font-size:0.78rem">{{ u.Email }}</td>
+          <td>
+            <span class="badge {{ 'badge-critical' if r == 'admin' else ('badge-medium' if r == 'counselor' else 'badge-low') }}">
+              {{ u.Role }}
+            </span>
+          </td>
+          <td class="text-mono">{{ u.Age or '—' }}</td>
+          <td>{{ u.Gender or '—' }}</td>
+          <td class="text-mono">{{ u.Contact or '—' }}</td>
+          <td>{{ u.Location or '—' }}</td>
+          <td class="text-mono" style="font-size:0.72rem">
+            {{ u.CreatedAt.strftime('%d %b %Y') if u.CreatedAt else '—' }}
+          </td>
+          <td>
+            {% if u.Role != 'admin' %}
+            <button class="btn btn-ghost btn-sm" onclick="openModal('promo-{{ u.UserID }}')">
+              Change Role
+            </button>
+            {% else %}
+            <span class="text-muted text-mono" style="font-size:0.72rem">admin</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- PROMOTE MODALS -->
+{% for u in users %}
+{% if u.Role != 'admin' %}
+<div class="modal-overlay" id="promo-{{ u.UserID }}">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('promo-{{ u.UserID }}')">✕</button>
+    <h3>Change Role — {{ u.Name }}</h3>
+    <p class="text-muted mb-2" style="font-size:0.84rem">Current role: <strong>{{ u.Role }}</strong></p>
+    <form method="POST" action="{{ url_for('admin_promote', uid=u.UserID) }}">
+      <div class="form-group">
+        <label>New Role</label>
+        <select name="role" class="form-control" required id="roleSelect-{{ u.UserID }}"
+          onchange="toggleSpecialty(this, {{ u.UserID }})">
+          <option value="user"      {{ 'selected' if u.Role == 'user' }}>User</option>
+          <option value="counselor" {{ 'selected' if u.Role == 'counselor' }}>Counselor</option>
+        </select>
+      </div>
+      <div id="specialty-{{ u.UserID }}" class="form-group" 
+           style="{{ '' if u.Role == 'counselor' else 'display:none' }}">
+        <label>Specialty</label>
+        <input type="text" name="specialty" class="form-control" placeholder="e.g. Anxiety & Depression">
+      </div>
+      <div class="gap-2">
+        <button type="submit" class="btn btn-primary">Update →</button>
+        <button type="button" class="btn btn-ghost" onclick="closeModal('promo-{{ u.UserID }}')">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endfor %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+function toggleSpecialty(sel, uid) {
+  const sp = document.getElementById('specialty-' + uid);
+  sp.style.display = sel.value === 'counselor' ? 'block' : 'none';
+}
+</script>
+{% endblock %}

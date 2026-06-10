@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}MHS{% endblock %} — Mental Health Support</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <h1>MH Support</h1>
+      <small>Community System</small>
+    </div>
+    <div class="sidebar-role">{{ session.get('role', 'guest') }}</div>
+
+    <nav>
+      {% if session.get('role') == 'user' %}
+        <a href="{{ url_for('user_dashboard') }}" class="{{ 'active' if request.endpoint == 'user_dashboard' }}">
+          <span class="icon">◈</span> My Cases
+        </a>
+        <a href="{{ url_for('user_submit') }}" class="{{ 'active' if request.endpoint == 'user_submit' }}">
+          <span class="icon">＋</span> Submit Case
+        </a>
+
+      {% elif session.get('role') == 'counselor' %}
+        <a href="{{ url_for('counselor_dashboard') }}" class="{{ 'active' if request.endpoint == 'counselor_dashboard' }}">
+          <span class="icon">◈</span> Assigned Cases
+        </a>
+
+      {% elif session.get('role') == 'admin' %}
+        <a href="{{ url_for('admin_dashboard') }}" class="{{ 'active' if request.endpoint == 'admin_dashboard' }}">
+          <span class="icon">◈</span> All Cases
+        </a>
+        <a href="{{ url_for('admin_users') }}" class="{{ 'active' if request.endpoint == 'admin_users' }}">
+          <span class="icon">⊞</span> Users
+        </a>
+        <a href="{{ url_for('admin_db') }}" class="{{ 'active' if request.endpoint == 'admin_db' }}">
+          <span class="icon">⊗</span> Database
+        </a>
+      {% endif %}
+    </nav>
+
+    <div class="sidebar-footer">
+      <div>{{ session.get('name', '') }}</div>
+      <div style="margin-top:4px">
+        <a href="{{ url_for('logout') }}">Sign out →</a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <header class="topbar">
+      <span class="topbar-title">{% block page_title %}Dashboard{% endblock %}</span>
+      <span class="topbar-user">{{ session.get('email', '') }}</span>
+    </header>
+
+    <div class="content">
+      <!-- FLASH MESSAGES -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-list">
+            {% for cat, msg in messages %}
+              <div class="flash {{ cat }}">{{ msg }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+</div>
+{% block scripts %}{% endblock %}
+</body>
+</html>

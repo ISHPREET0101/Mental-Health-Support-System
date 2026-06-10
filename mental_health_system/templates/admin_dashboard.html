@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block page_title %}Admin Panel{% endblock %}
+
+{% block content %}
+
+<!-- STATS -->
+<div class="stats-row">
+  <div class="stat-card">
+    <div class="stat-label">Total Cases</div>
+    <div class="stat-value">{{ stats.total }}</div>
+  </div>
+  <div class="stat-card warn">
+    <div class="stat-label">Pending</div>
+    <div class="stat-value">{{ stats.pending }}</div>
+  </div>
+  <div class="stat-card danger">
+    <div class="stat-label">High / Critical</div>
+    <div class="stat-value">{{ stats.critical }}</div>
+  </div>
+  <div class="stat-card success">
+    <div class="stat-label">Approved</div>
+    <div class="stat-value">{{ stats.approved }}</div>
+  </div>
+</div>
+
+<!-- BATCH SEVERITY BUTTON -->
+<div style="margin-bottom:20px">
+  <form method="POST" action="{{ url_for('admin_batch_severity') }}" style="display:inline">
+    <button class="btn btn-ghost btn-sm" title="Runs batch_update_severities cursor procedure">
+      ⟳ Recalculate All Severities (Cursor Proc)
+    </button>
+  </form>
+</div>
+
+<!-- ALL CASES TABLE -->
+<div class="card mb-2">
+  <div class="card-header">
+    <h3>All Cases</h3>
+    <input type="text" id="caseSearch" placeholder="Search patient, type..." 
+           class="form-control" style="width:240px; margin:0"
+           oninput="filterTable(this.value)">
+  </div>
+  <div class="table-wrap scroll-table">
+    <table id="caseTable">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Patient</th>
+          <th>Contact</th>
+          <th>Type</th>
+          <th>Severity</th>
+          <th>Status</th>
+          <th>Counselor</th>
+          <th>Date</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in all_cases %}
+        {% set sev = c.Severity | lower %}
+        {% set st  = c.Status | lower | replace(' ','') %}
+        <tr>
+          <td class="text-mono">{{ c.AlertID }}</td>
+          <td><strong>{{ c.PatientName }}</strong>
+            <div class="text-mono" style="font-size:0.68rem; color:var(--muted)">{{ c.PatientEmail }}</div>
+          </td>
+          <td class="text-mono">{{ c.PatientContact or '—' }}</td>
+          <td>{{ c.AlertType }}</td>
+          <td><span class="badge badge-{{ sev }}">{{ c.Severity }}</span></td>
+          <td><span class="badge badge-{{ st }}">{{ c.Status }}</span></td>
+          <td>{{ c.CounselorName }}</td>
+          <td class="text-mono">{{ c.AlertDate.strftime('%d %b %Y') if c.AlertDate else '—' }}</td>
+          <td>
+            <div class="gap-2">
+              {% if c.Status not in ['Approved'] %}
+                <button class="btn btn-ghost btn-sm" onclick="openModal('assign-{{ c.AlertID }}')">Assign</button>
+              {% endif %}
+              {% if c.Status == 'Resolved' %}
+                <form method="POST" action="{{ url_for('admin_approve', alert_id=c.AlertID) }}" style="display:inline">
+                  <button class="btn btn-accent btn-sm">Approve ✓</button>
+                </form>
+              {% endif %}
+              {% if c.Status == 'Approved' %}
+                <span class="text-mono" style="color:var(--accent); font-size:0.7rem">✓ Done</span>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- COUNSELOR STATS -->
+<div class="grid-2 mt-3" style="margin-bottom:20px">
+  <div class="card">
+    <div class="card-header"><h3>Counselor Load</h3></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Specialty</th>
+            <th>Status</th>
+            <th>Active</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in counselors %}
+          <tr>
+            <td><strong>{{ c.CounselorName }}</strong></td>
+            <td class="text-muted">{{ c.Specialty }}</td>
+            <td>
+              <span class="badge {{ 'badge-low' if c.Availability == 'Available' else 'badge-high' }}">
+                {{ c.Availability }}
+              </span>
+            </td>
+            <td class="text-mono">{{ c.ActiveCases }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- AUDIT LOG -->
+  <div class="card">
+    <div class="card-header"><h3>Audit Log</h3></div>
+    <div class="table-wrap" style="max-height:300px; overflow-y:auto">
+      <table>
+        <thead>
+          <tr><th>Case#</th><th>Action</th><th>Old</th><th>New</th><th>Time</th></tr>
+        </thead>
+        <tbody>
+          {% for log in audit %}
+          <tr>
+            <td class="text-mono">{{ log.AlertID }}</td>
+            <td style="font-size:0.75rem">{{ log.Action }}</td>
+            <td class="text-muted text-mono">{{ log.OldValue or '—' }}</td>
+            <td class="text-mono">{{ log.NewValue or '—' }}</td>
+            <td class="text-mono" style="font-size:0.7rem">{{ log.ChangedAt.strftime('%d %b %H:%M') if log.ChangedAt else '—' }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" class="text-muted" style="text-align:center; padding:20px">No audit entries yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ASSIGN MODALS -->
+{% for c in all_cases %}
+{% if c.Status not in ['Approved'] %}
+<div class="modal-overlay" id="assign-{{ c.AlertID }}">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('assign-{{ c.AlertID }}')">✕</button>
+    <h3>Assign Counselor</h3>
+    <p class="text-muted mb-2">
+      Case #{{ c.AlertID }} · {{ c.PatientName }} · 
+      <span class="badge badge-{{ c.Severity | lower }}">{{ c.Severity }}</span>
+    </p>
+    <form method="POST" action="{{ url_for('admin_assign', alert_id=c.AlertID) }}">
+      <div class="form-group">
+        <label>Select Counselor</label>
+        <select name="counselor_id" class="form-control" required>
+          <option value="" disabled selected>Choose a counselor</option>
+          {% for cnslr in counselor_list %}
+          <option value="{{ cnslr.CounselorID }}"
+            {{ 'selected' if c.CounselorName == cnslr.Name }}>
+            {{ cnslr.Name }} — {{ cnslr.Specialty }} ({{ cnslr.Availability }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="gap-2">
+        <button type="submit" class="btn btn-primary">Assign →</button>
+        <button type="button" class="btn btn-ghost" onclick="closeModal('assign-{{ c.AlertID }}')">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endfor %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+function filterTable(q) {
+  q = q.toLowerCase();
+  document.querySelectorAll('#caseTable tbody tr').forEach(row => {
+    row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+</script>
+{% endblock %}
